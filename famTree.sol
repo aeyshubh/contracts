@@ -1,19 +1,21 @@
 pragma solidity^ 0.8.0;
-
-contract famtree{
+//Deployed At : 0xf9d7dE0eC6E2fe5d24811066c20b5568EdEFB7c5 // Matic testnet
+contract Famtree{
     struct person{
+        string fatherName;
         string maleName;
         string femaleName;
-        uint dob;
+        string dob;
         uint recordDate;
         uint totalWealth;
         uint genNo;
     }
 mapping (address => person[]) PeopleOfFamily;
 address [] public headOfFamily; // Array that stores the creator of the tree addresses
-function createPerson(string memory _name,string memory _femaleName,uint gen,uint _dob,uint _wealth) public{
+function createPerson(string memory _name,string memory _femaleName,uint gen,string memory _dob,uint _wealth,string memory _fatherName) public{
    
     PeopleOfFamily[msg.sender].push(person({
+        fatherName : _fatherName,
         maleName : _name,
         femaleName : _femaleName,
         dob : _dob,
@@ -25,7 +27,9 @@ function createPerson(string memory _name,string memory _femaleName,uint gen,uin
     headOfFamily.push(msg.sender);// Push node creating address into the array
 }
 
-function getPerson(uint genNo) public view returns(string memory){
+
+
+function getData(uint genNo) public view returns(string memory){
     return(PeopleOfFamily[msg.sender][genNo].maleName); // Retrive the generation by the generation Number
 }
 }
