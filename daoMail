@@ -1,0 +1,115 @@
+// SPDX-License-Identifier: MIT
+// OpenZeppelin Contracts (last updated v4.9.0) (token/ERC20/ERC20.sol)
+// DEP : 0x7ce76DA6D5469Dc217bB98a7c12Ca0e13A89BdAa
+pragma solidity ^0.8.19;
+import {ERC20} from "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol";
+contract Dao {
+    // 0x37D4203FaE62CCd7b1a78Ef58A5515021ED8FD84;//Verse Token
+    struct dao {
+        string name;
+        string desc;
+        address[] members;
+        uint256 id;
+        address admin;
+    }
+
+    struct proposal {
+        string pName;
+        uint256 pId;
+        string desc;
+        uint256 yes;
+        uint256 no;
+        uint256 abstain;
+        uint256 end;
+        address winner;
+        uint256 amt;
+        string sts;
+    }
+    mapping(address => dao) public daoMapping;
+    mapping(uint256 => mapping(uint256 => proposal)) public daoProposalMapping;
+    mapping(uint256 => uint256) public currentProposalId; //1(DAO ID) => 5(proposals Created)
+    uint256 public currentDaoId;
+
+    function createDao(
+        string memory _name,
+        string memory _desc,
+        address[] memory _members
+    ) public {
+        daoMapping[msg.sender].name = _name;
+        daoMapping[msg.sender].desc = _desc;
+        daoMapping[msg.sender].admin = msg.sender;
+        for (uint256 i = 0; i < _members.length; i++) {
+            daoMapping[msg.sender].members.push(_members[i]);
+        }
+        daoMapping[msg.sender].id = currentDaoId;
+        currentDaoId++;
+    }
+
+    function addMembers(address[] memory _members) public {
+        require(
+            msg.sender == daoMapping[msg.sender].admin,
+            "You are not the Admin of the DAO"
+        );
+        for (uint256 i = 0; i < _members.length; i++) {
+            daoMapping[msg.sender].members.push(_members[i]);
+        }
+    }
+
+    function participants() public view returns (address[] memory) {
+        return (daoMapping[msg.sender].members);
+    }
+
+    function createProposal(
+        uint256 _daoId,
+        string memory _name,
+        string memory _desc,
+        uint256 _end,
+        address _winner,
+        uint256 _amt
+    ) public {
+        uint256 newPid = currentProposalId[_daoId]; 
+        daoProposalMapping[_daoId][newPid].pName = _name;
+        daoProposalMapping[_daoId][newPid].desc = _desc;
+        daoProposalMapping[_daoId][newPid].pId = newPid;
+        daoProposalMapping[_daoId][newPid].end = _end;
+        daoProposalMapping[_daoId][newPid].winner = _winner;
+        daoProposalMapping[_daoId][newPid].amt = _amt * 1e18;
+        currentProposalId[_daoId] = currentProposalId[_daoId]+1;
+    }
+
+    function voteProposal(
+        uint256 _vote,
+        uint256 _daoId,
+        address _token
+    ) public {
+        uint256 newPid = currentProposalId[_daoId]-1;
+         require(
+            block.timestamp <= daoProposalMapping[_daoId][newPid].end,
+            "Time is Over"
+        );
+            ERC20(_token).transferFrom(
+                msg.sender,
+                address(this),
+                10 * 1e18
+            );
+
+
+        if (_vote == 1) daoProposalMapping[_daoId][newPid].yes++;
+        else if (_vote == 2) daoProposalMapping[_daoId][newPid].no++;
+        else daoProposalMapping[_daoId][newPid].abstain++;
+    }
+
+    function decision(address _token) public {
+        uint256 newPid;
+        for(uint256 i=0;i<currentDaoId;i++){
+        newPid = currentProposalId[i]-1;
+            if(daoProposalMapping[i][newPid].yes > daoProposalMapping[i][newPid].no){
+                address _rec = daoProposalMapping[i][newPid].winner;
+                uint256 _amt = daoProposalMapping[i][newPid].amt;
+                ERC20(_token).transfer(_rec,_amt);
+                daoProposalMapping[i][newPid].sts = "true";
+            }
+        }
+
+    }
+}
